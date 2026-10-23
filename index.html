@@ -106,7 +106,20 @@ function openPayment(){if(!quote){progress('ready');stopClock();}previousFocus=d
 function closePayment(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.style.overflow='';if(previousFocus?.isConnected)previousFocus.focus()}
 function restore(d){product=CATALOG[d.product_id];quote=d.quote;txid=/^[a-f0-9]{64}$/i.test(d.txid||'')?d.txid:'';$('btc-txid').value=txid;renderQuote();progress(['confirmed','detected','submitted','quoted','expired','pending'].includes(d.phase)?d.phase:(txid?'submitted':'quoted'));if(txid&&phase==='expired')progress('submitted');startClock();setBtns();say(txid?'Your original transaction has been restored. Use Check Status or Verify Payment to refresh it.':'Your original quote has been restored. The countdown continues from the original expiry.');}
 function choose(p){const saved=read();if(saved&&saved.product_id===p.product_id){restore(saved);return}if(saved&&saved.phase!=='confirmed'){const proceed=confirm('An unfinished Bitcoin payment is saved for '+CATALOG[saved.product_id].product_name+'. Open it instead?\n\nOK = resume saved payment. Cancel = continue to the selected edition (saved payment is still retained until a new quote is generated).');if(proceed){restore(saved);return}}product=p;quote=null;txid='';$('btc-txid').value='';stopClock();$('btc-quote-details').replaceChildren();progress('ready');setBtns();say('Test mode: this requests a $1 USD BTC quote.')}
-document.querySelectorAll('[data-mc-btc]').forEach(b=>b.addEventListener('click',()=>{choose(CATALOG[b.dataset.mcBtc]);closeTiers();openPayment()}));
+document.addEventListener('click',e=>{
+  const button=e.target.closest('[data-mc-btc]');
+  if(!button)return;
+  const selected=CATALOG[button.dataset.mcBtc];
+  if(!selected)return;
+  const tiers=document.getElementById('mc-tiers');
+  if(tiers){
+    tiers.classList.remove('open');
+    tiers.setAttribute('aria-hidden','true');
+  }
+  document.body.style.overflow='';
+  choose(selected);
+  openPayment();
+});
 closeBtn.addEventListener('click',closePayment);modal.addEventListener('click',e=>{if(e.target===modal)closePayment()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open')){e.stopImmediatePropagation();closePayment()}});
 $('mc-btc-open').addEventListener('click',()=>{choose(CATALOG['maximum-charts']);openPayment()});
 $('btc-resume').addEventListener('click',()=>{const d=read();if(!d)return;restore(d);openPayment()});
